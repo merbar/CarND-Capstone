@@ -42,10 +42,14 @@ class WaypointUpdater(object):
 
     def pose_cb(self, msg):
         # TODO: Implement
+        # rospy.loginfo('HERE!!')
         pass
 
     def waypoints_cb(self, waypoints):
         # TODO: Implement
+        wp_base_size = len(waypoints.waypoints)
+        rospy.loginfo('wp_base_size: {}'.format(wp_base_size)) # 10902 wps at start
+
         pass
 
     def traffic_cb(self, msg):
