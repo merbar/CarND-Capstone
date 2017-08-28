@@ -4,7 +4,7 @@ import rospy
 from geometry_msgs.msg import PoseStamped
 from styx_msgs.msg import Lane, Waypoint
 import numpy as np
-
+import tf
 import math
 
 '''
@@ -23,6 +23,7 @@ TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 '''
 
 LOOKAHEAD_WPS = 200 # Number of waypoints we will publish. You can change this number
+DEBUG = False
 
 class WaypointUpdater(object):
     def __init__(self):
@@ -51,10 +52,6 @@ class WaypointUpdater(object):
             # rospy.loginfo('wp_base_size: {}'.format(wp_base_size)) # 10902 wps at start
             next_wp_i = self.next_waypoint(self.cur_pose.pose, waypoints.waypoints)
             next_waypoints = waypoints.waypoints[next_wp_i:next_wp_i+LOOKAHEAD_WPS]
-            rospy.logerr('current_pose - x:{}, y:{},z:{}'.format(self.cur_pose.pose.position.x, self.cur_pose.pose.position.y, self.cur_pose.pose.position.z))
-            rospy.logerr('next wp: {}; {}-{}'.format(next_wp_i, waypoints.waypoints[next_wp_i].pose.pose.position.x, waypoints.waypoints[next_wp_i].pose.pose.position.y))
-            # rospy.loginfo('published waypoints, next WP:{}'.format(next_wp_i))
-            # rospy.logerr(next_wp_i)
 
             # publish
             final_waypoints_msg = Lane()
@@ -102,13 +99,25 @@ class WaypointUpdater(object):
         map_y = waypoints[closest_wp_i].pose.pose.position.y
         
         heading = math.atan2((map_y - pose.position.y), (map_x - pose.position.x))
-        angle = math.fabs(pose.orientation.z - heading)
-        # EGO POSE IS BETWEEN 0 and 1 !!!!
-        rospy.logerr('ego pose: x: {} y: {} z: {} w: {}'.format(pose.orientation.x ,pose.orientation.y, pose.orientation.z, pose.orientation.w))
-        rospy.logerr('heading: {}, angle: {}'.format(heading, angle))
+
+        pose_quaternion = (pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w)
+        (_, _, yaw) = tf.transformations.euler_from_quaternion(pose_quaternion)
+        angle = math.fabs(heading - yaw)
+        
+        if DEBUG:
+            rospy.logerr('current_pose - x:{}, y:{},z:{}'.format(pose.position.x, pose.position.y, pose.position.z))
+            rospy.logerr('ego yaw: {}'.format(yaw))
+            rospy.logerr('heading: {}, angle: {}'.format(heading, angle))
+            rospy.logerr('closest wp: {}; {}-{}'.format(closest_wp_i, waypoints[closest_wp_i].pose.pose.position.x, waypoints[closest_wp_i].pose.pose.position.y))
 
         if angle > (math.pi / 4):
             closest_wp_i += 1
+            if DEBUG:
+                rospy.logerr('corrected wp: {}; {}-{}'.format(closest_wp_i, waypoints[closest_wp_i].pose.pose.position.x, waypoints[closest_wp_i].pose.pose.position.y))
+
+        if DEBUG:
+            rospy.logerr(' ')
+        
         return closest_wp_i
 
 if __name__ == '__main__':
